@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-#Last Modified: 2021/01/30 10:08:58
+#Last Modified: 2021/12/20 14:13:05
 import blescan
 import logging
 import logging.handlers
@@ -89,19 +89,35 @@ class TiltMonitor():
 	def to_celsius(self,fahrenheit):
 		return round((fahrenheit - 32.0) / 1.8, 2)
 
-	def calibrate_SG(self,sg):
+	def calibrate_SG(self,sg,tilt):
+		#Dette bør flyttes til .ini
+		# dette er formentlig orange
 		#1001 -> 999 målt 1001 er 999 (ved 16 grader)
 		#1010 -> 1010 målt med alc 1010 er 1010
 		#1072 -> 1074 er målt refractometer 1074 
-		lc=lineCalibration((1001,999),(1072,1074))
-		return lc.y(sg)
+		if tilt=="orange": 
+			lc=lineCalibration((1000,1000),(1072,1074))
+			return lc.y(sg)
+		if tilt=="purple": 
+			#997 -> 1000 målt 998 burde være 1000 
+			# kun en værdi indtil videre
+			lc=lineCalibration((1000,1000),(1074,1074))
+			return lc.y(sg)
 
-	def calibrate_Tc(self,t):
+	def calibrate_Tc(self,t,tilt):
+			#Dette bør flyttes til .ini
 			#Kalibrering af celcius
+			# dette er formentlig orange
 			#målt 18.33 er 18.0
 			#målt 21.67 er 21.5
 			#målt 16.1 er 16.0
-		return t-0.3	
+		if tilt=="orange": 
+			return t-0.3	
+		if tilt=="purple": 
+			#malt 20.8 burde være 20.0
+			# kun en værdi så antager det er forskydning
+			lc=lineCalibration((20.8,20),(21.8,21))
+			return lc.y(t)
 
 	def run(self):		
 		self.dev_id = 0
@@ -126,17 +142,19 @@ class TiltMonitor():
 				for beacon in beacons:
 					
 					if beacon['uuid'] in self.TILTS.keys():
+						tilt_found=True
 						data ={
 							'tilt': self.TILTS[beacon['uuid']],
 							'time': str(datetime.datetime.now()),
 							'temperature': self.to_celsius(beacon['major']),
-							'temperature_cal': self.calibrate_Tc( self.to_celsius(beacon['major'])),
+							'temperature_cal': self.calibrate_Tc( self.to_celsius(beacon['major']),self.TILTS[beacon['uuid']]),
 							'sg': beacon['minor'],
-							'sg_cal': self.calibrate_SG(beacon['minor']),
+							'sg_cal': self.calibrate_SG(beacon['minor'],self.TILTS[beacon['uuid']]),
 							'measurementID' : str(uuid.uuid4())
 						}
 						log.debug(data)		
 						self.callback(data)
+				if not tilt_found: log.warning("Ingen tilt fundet")
 				time.sleep(self.pause)
 		
 
@@ -144,7 +162,7 @@ def tiltCallback(data):
 	data['msg_uuid']=str(uuid.uuid4())
 	data['time_send']=str(datetime.datetime.now())	
 	mqtt_client.connect(conf['MQTT']['Ip'])		
-	response=mqtt_client.publish(conf['MQTT']['channel'],json.dumps(data),1,True)
+	response=mqtt_client.publish(conf['MQTT']['channel']+"/"+data['tilt'],json.dumps(data),1,True)
 	log.debug(f"Succes: {response.rc}" )
 	mqtt_client.disconnect()
 

@@ -1,2 +1,4 @@
-https://raw.githubusercontent.com/switchdoclabs/iBeacon-Scanner-/master/blescan.py
+#https://raw.githubusercontent.com/switchdoclabs/iBeacon-Scanner-/master/blescan.py
 bluetooth
+paho-mqtt
+

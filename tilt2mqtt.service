@@ -4,11 +4,11 @@ After=network.target
 
 [Service]
 ExecStart=/usr/bin/python3 -u tilt2mqtt.py
-WorkingDirectory=/home/pi/tilt2mqtt/
+WorkingDirectory=/home/allan/tilt2mqtt/
 StandardOutput=inherit
 StandardError=inherit
 Restart=always
-User=pi   #sudo setcap cap_net_raw+eip /usr/bin/python3.7
+#User=pi   #sudo setcap cap_net_raw+eip /usr/bin/python3.9
 
 [Install]
 WantedBy=multi-user.target
@@ -17,5 +17,5 @@ WantedBy=multi-user.target
 #Edit value for WorkingDirectory
 #Copy this file to /etc/systemd/system/
 #sudo systemctl daemon-reload
-#sudo systemctl start doorbell.service
+#sudo systemctl start tilt2mqtt
 
