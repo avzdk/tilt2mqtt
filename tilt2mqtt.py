@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-#Last Modified: 2021/12/20 14:13:05
+#Last Modified: 2022/02/02 10:23:05
 import blescan
 import logging
 import logging.handlers
 import configparser
+import requests
 import sys
 import os
 import json
@@ -73,6 +74,7 @@ class TiltMonitor():
 
 	
 	def __init__(self,pause,callback):
+		
 		self.pause = pause
 		self.callback=callback
 		log.info(f"Retrieving data every {pause} seconds")
@@ -156,7 +158,19 @@ class TiltMonitor():
 						self.callback(data)
 				if not tilt_found: log.warning("Ingen tilt fundet")
 				time.sleep(self.pause)
-		
+
+class BFproxy:
+    def __init__(self,url):
+        self.url=url
+        
+    def postdata(self,name,sg,t):
+        if sg >1.2 : log.error("SG is to big. should be < 1,2")
+        data={"name": name, "temp": t,"temp_unit": "C", "gravity": sg,"gravity_unit": "G"}
+        r = requests.post(self.url, data).json()
+        log.debug(f"{data}  -> {r}")
+        if r['result']=='ignored':
+            log.warning("Data ignored")
+        return r		
 
 def tiltCallback(data):
 	data['msg_uuid']=str(uuid.uuid4())
@@ -164,7 +178,12 @@ def tiltCallback(data):
 	mqtt_client.connect(conf['MQTT']['Ip'])		
 	response=mqtt_client.publish(conf['MQTT']['channel']+"/"+data['tilt'],json.dumps(data),1,True)
 	log.debug(f"Succes: {response.rc}" )
+
 	mqtt_client.disconnect()
+
+	bf=BFproxy(conf["BREWFATHER"]["LoggingURL"])
+	r=bf.postdata(data['tilt'],data['sg_cal']/1000,data['temperature_cal'])
+	
 
 
 		
