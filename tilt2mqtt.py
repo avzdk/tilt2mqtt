@@ -135,6 +135,7 @@ class TiltMonitor():
 
 		while True:
 				
+				tilt_found=False
 				log.debug("check tilts for data")
 				
 				a=blescan.parse_events(self.sock, 100)
